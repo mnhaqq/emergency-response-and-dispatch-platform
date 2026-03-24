@@ -13,11 +13,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Hash password
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:72])
 
 # Verify password
 def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain[:72], hashed)
 
 # Create token
 def create_token(data: dict, expires_delta: timedelta):
