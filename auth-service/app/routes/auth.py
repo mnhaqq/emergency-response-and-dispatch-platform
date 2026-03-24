@@ -1,44 +1,72 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.orm import Session
+from app import models, schemas, auth
+from app.database import SessionLocal
+from app.dependencies import get_current_user
 
-from app.database import get_db
-from app import models, schemas
-from app.auth import hash_password, verify_password, create_token
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
-router = APIRouter()
+# DB Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@router.post("/register")
-async def register(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.User).where(models.User.email == user.email))
-    existing_user = result.scalar_one_or_none()
-
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+# REGISTER
+@router.post("/register", response_model=schemas.UserResponse)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.email == user.email).first()
+    if existing:
+        raise HTTPException(400, "Email already registered")
 
     new_user = models.User(
+        name=user.name,
         email=user.email,
-        password=hash_password(user.password),
-        role=user.role
+        role=user.role,
+        password_hash=auth.hash_password(user.password)
     )
 
     db.add(new_user)
-    await db.commit()
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
-    return {"message": "User created"}
-
-
+# LOGIN
 @router.post("/login", response_model=schemas.Token)
-async def login(user: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.User).where(models.User.email == user.email))
-    db_user = result.scalar_one_or_none()
+def login(data: schemas.UserLogin, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == data.email).first()
 
-    if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user or not auth.verify_password(data.password, user.password_hash):
+        raise HTTPException(401, "Invalid credentials")
 
-    token = create_token({
-        "sub": db_user.email,
-        "role": db_user.role
-    })
+    access, refresh = auth.create_tokens(user.id, user.role)
 
-    return {"access_token": token}
+    return {
+        "access_token": access,
+        "refresh_token": refresh
+    }
+
+# REFRESH TOKEN
+@router.post("/refresh-token")
+def refresh_token(refresh_token: str):
+    from jose import jwt
+
+    try:
+        payload = jwt.decode(refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        user_id = payload.get("sub")
+
+        access, refresh = auth.create_tokens(user_id, payload.get("role", ""))
+        return {
+            "access_token": access,
+            "refresh_token": refresh
+        }
+    except:
+        raise HTTPException(401, "Invalid refresh token")
+
+# PROFILE
+@router.get("/profile", response_model=schemas.UserResponse)
+def profile(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = db.query(models.User).get(int(user["sub"]))
+    return db_user
