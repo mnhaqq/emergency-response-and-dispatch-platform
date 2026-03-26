@@ -1,0 +1,135 @@
+version: "3.9"
+
+services:
+  # ─── Databases ───────────────────────────────────────────────
+  auth-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  incident-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: incident_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - incident-db-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dispatch-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dispatch_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - dispatch-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  analytics-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - analytics-db-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Microservices ────────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@auth-db:5432/auth_db
+      SECRET_KEY: super-secret-jwt-key-change-in-production
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  incident-service:
+    build: ./incident-service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@incident-db:5432/incident_db
+      SECRET_KEY: super-secret-jwt-key-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:8000
+      DISPATCH_SERVICE_URL: http://dispatch-service:8000
+      ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      INTERNAL_SERVICE_KEY: internal-service-key-change-in-production
+    depends_on:
+      incident-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  dispatch-service:
+    build: ./dispatch-service
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@dispatch-db:5432/dispatch_db
+      SECRET_KEY: super-secret-jwt-key-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:8000
+      ANALYTICS_SERVICE_URL: http://analytics-service:8000
+      INTERNAL_SERVICE_KEY: internal-service-key-change-in-production
+    depends_on:
+      dispatch-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@analytics-db:5432/analytics_db
+      SECRET_KEY: super-secret-jwt-key-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:8000
+      INTERNAL_SERVICE_KEY: internal-service-key-change-in-production
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+volumes:
+  auth-db-data:
+  incident-db-data:
+  dispatch-db-data:
+  analytics-db-data:
