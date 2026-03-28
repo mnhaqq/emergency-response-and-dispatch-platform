@@ -6,7 +6,7 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.db.session import Base
-from app.models.user import User  # noqa: F401 — register model
+from app.models.user import User  # noqa: F401
 from app.config import settings
 
 config = context.config
@@ -17,18 +17,30 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+# Handle Neon/hosted Postgres SSL
+connect_args = {}
+if "neon.tech" in settings.DATABASE_URL or "sslmode=require" in settings.DATABASE_URL:
+    connect_args = {"sslmode": "require"}
+
 
 def run_migrations_offline():
-    context.configure(url=settings.DATABASE_URL, target_metadata=target_metadata, literal_binds=True)
+    context.configure(
+        url=settings.DATABASE_URL,
+        target_metadata=target_metadata,
+        literal_binds=True,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online():
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = settings.DATABASE_URL
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
