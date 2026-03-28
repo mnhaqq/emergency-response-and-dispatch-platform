@@ -66,6 +66,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── API Gateway ─────────────────────────────────────────────
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:80"
+    depends_on:
+      - auth-service
+      - incident-service
+      - dispatch-service
+      - analytics-service
+    restart: on-failure
+
   # ─── Microservices ────────────────────────────────────────────
   auth-service:
     build: ./auth-service
