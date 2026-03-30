@@ -43,7 +43,9 @@ def find_nearest_responder(incident_lat: float, incident_lon: float, responder_t
             )
             resp.raise_for_status()
             vehicles = resp.json()
-    except Exception:
+            print("SUCCESS")
+    except Exception as e:
+        print("Exception: ", e)
         return None
 
     if not vehicles:
@@ -88,6 +90,8 @@ def notify_analytics(
                 f"{settings.ANALYTICS_SERVICE_URL}/analytics/events",
                 json=payload,
             )
+            print("SUCCESS")
     except Exception as e:
+        print("Exception: ", e)
         pass
         # Never block incident operations due to analytics failure

@@ -60,7 +60,9 @@ def create_incident(
                     json={"status": "ON_DUTY", "incident_id": str(incident.id)},
                     headers=INTERNAL_HEADERS,
                 )
-        except Exception:
+                print("SUCCESS")
+        except Exception as e:
+            print("Exception: ", e)
             pass
 
         db.commit()
@@ -123,7 +125,9 @@ def update_status(
                     json={"status": "AVAILABLE", "incident_id": None},
                     headers=INTERNAL_HEADERS,
                 )
-        except Exception:
+                print("SUCCESS")
+        except Exception as e:
+            print("Exception: ", e)
             pass
         notify_analytics(
             incident_id=str(incident.id),
