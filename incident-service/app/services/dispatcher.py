@@ -35,7 +35,7 @@ def find_nearest_responder(incident_lat: float, incident_lon: float, responder_t
     then returns the nearest one using the Haversine formula.
     """
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             resp = client.get(
                 f"{settings.DISPATCH_SERVICE_URL}/vehicles",
                 params={"vehicle_type": responder_type.value, "status": "AVAILABLE"},
@@ -44,6 +44,7 @@ def find_nearest_responder(incident_lat: float, incident_lon: float, responder_t
             resp.raise_for_status()
             vehicles = resp.json()
     except Exception:
+        print("timeout")
         return None
 
     if not vehicles:
@@ -83,11 +84,12 @@ def notify_analytics(
         "assigned_unit_id": assigned_unit_id,
     }
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             resp = client.post(
                 f"{settings.ANALYTICS_SERVICE_URL}/analytics/events",
                 json=payload,
             )
     except Exception as e:
+        print("timeout")
         pass
         # Never block incident operations due to analytics failure

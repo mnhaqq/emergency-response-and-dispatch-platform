@@ -54,13 +54,14 @@ def create_incident(
 
         # Tell dispatch service to mark the vehicle as on-duty
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=10.0) as client:
                 client.put(
                     f"{settings.DISPATCH_SERVICE_URL}/vehicles/{nearest['id']}/status",
                     json={"status": "ON_DUTY", "incident_id": str(incident.id)},
                     headers=INTERNAL_HEADERS,
                 )
         except Exception:
+            print("timeout")
             pass
 
         db.commit()
@@ -117,13 +118,14 @@ def update_status(
     # Free up vehicle when incident is resolved
     if payload.status == IncidentStatus.RESOLVED and incident.assigned_unit_id:
         try:
-            with httpx.Client(timeout=5.0) as client:
+            with httpx.Client(timeout=10.0) as client:
                 client.put(
                     f"{settings.DISPATCH_SERVICE_URL}/vehicles/{incident.assigned_unit_id}/status",
                     json={"status": "AVAILABLE", "incident_id": None},
                     headers=INTERNAL_HEADERS,
                 )
         except Exception:
+            print("timeout")
             pass
         notify_analytics(
             incident_id=str(incident.id),
