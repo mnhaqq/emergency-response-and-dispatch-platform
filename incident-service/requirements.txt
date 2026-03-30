@@ -7,3 +7,6 @@ pydantic[email]==2.7.1
 pydantic-settings==2.2.1
 python-jose[cryptography]==3.3.0
 httpx==0.27.0
+geopandas>=0.14,<1.0
+shapely>=2.0,<3.0
+rtree>=1.0,<2.0
