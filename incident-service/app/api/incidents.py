@@ -15,6 +15,7 @@ from app.services.dispatcher import (
     INTERNAL_HEADERS,
 )
 from app.config import settings
+from app.services.utils import _region_from_coords
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -69,8 +70,7 @@ def create_incident(
         incident_id=str(incident.id),
         event="INCIDENT_CREATED",
         incident_type=incident.incident_type.value,
-        #region=_region_from_coords(incident.latitude, incident.longitude),
-        region="Greater Accra",
+        region=_region_from_coords(incident.latitude, incident.longitude),
         assigned_unit_type=incident.assigned_unit_type.value if incident.assigned_unit_type else None,
         assigned_unit_id=incident.assigned_unit_id,
     )
@@ -129,8 +129,7 @@ def update_status(
             incident_id=str(incident.id),
             event="INCIDENT_RESOLVED",
             incident_type=incident.incident_type.value,
-            #region=_region_from_coords(incident.latitude, incident.longitude),
-            region="Greater Accra",
+            region=_region_from_coords(incident.latitude, incident.longitude),
             assigned_unit_type=incident.assigned_unit_type.value if incident.assigned_unit_type else None,
             assigned_unit_id=incident.assigned_unit_id,
         )

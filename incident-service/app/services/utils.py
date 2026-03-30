@@ -18,4 +18,3 @@ def _region_from_coords(lat: float, lon: float) -> str:
 
     return "Unknown"
 
-print(_region_from_coords(5.025118, -0.218568))
