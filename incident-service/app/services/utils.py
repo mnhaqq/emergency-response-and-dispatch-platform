@@ -1,7 +1,12 @@
 import geopandas as gpd
 from shapely.geometry import Point
+from pathlib import Path
 
-gdf = gpd.read_file("data/ghana_regions.geojson")
+BASE_DIR = Path(__file__).resolve().parent
+print(BASE_DIR)
+GEOJSON_PATH = BASE_DIR / "data" / "ghana_regions.geojson"
+
+gdf = gpd.read_file(GEOJSON_PATH, engine="pyogrio")
 
 sindex = gdf.sindex
 
