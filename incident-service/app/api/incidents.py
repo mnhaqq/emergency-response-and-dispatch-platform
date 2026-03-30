@@ -16,6 +16,9 @@ from app.services.dispatcher import (
 )
 from app.config import settings
 from app.services.utils import _region_from_coords
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -60,8 +63,9 @@ def create_incident(
                     json={"status": "ON_DUTY", "incident_id": str(incident.id)},
                     headers=INTERNAL_HEADERS,
                 )
+                logger.info("Dispatch request success")
         except Exception:
-            print("timeout")
+            logger.exception("Dispatch request failed")
             pass
 
         db.commit()
@@ -124,8 +128,9 @@ def update_status(
                     json={"status": "AVAILABLE", "incident_id": None},
                     headers=INTERNAL_HEADERS,
                 )
+                logger.info("Dispatch request success")
         except Exception:
-            print("timeout")
+            logger.error("Dispatch request failed")
             pass
         notify_analytics(
             incident_id=str(incident.id),
