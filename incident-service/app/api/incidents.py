@@ -64,8 +64,10 @@ def create_incident(
                     headers=INTERNAL_HEADERS,
                 )
                 logger.info("Dispatch request success")
+                print("SUCCESS")
         except Exception:
             logger.exception("Dispatch request failed")
+            print("FAILED")
             pass
 
         db.commit()
@@ -129,8 +131,10 @@ def update_status(
                     headers=INTERNAL_HEADERS,
                 )
                 logger.info("Dispatch request success")
+                print("SUCCESS")
         except Exception:
             logger.error("Dispatch request failed")
+            print("FAILED")
             pass
         notify_analytics(
             incident_id=str(incident.id),
