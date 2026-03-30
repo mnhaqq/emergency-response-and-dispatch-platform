@@ -3,6 +3,7 @@ import httpx
 from app.config import settings
 from app.models.incident import IncidentType, ResponderType
 
+
 INTERNAL_KEY = "internal-service-key-change-in-production"
 INTERNAL_HEADERS = {"x-internal-key": INTERNAL_KEY}
 
@@ -37,7 +38,7 @@ def find_nearest_responder(incident_lat: float, incident_lon: float, responder_t
         with httpx.Client(timeout=5.0) as client:
             resp = client.get(
                 f"{settings.DISPATCH_SERVICE_URL}/vehicles",
-                params={"vehicle_type": responder_type.value, "status": "available"},
+                params={"vehicle_type": responder_type.value, "status": "AVAILABLE"},
                 headers=INTERNAL_HEADERS,
             )
             resp.raise_for_status()
@@ -64,13 +65,29 @@ def find_nearest_responder(incident_lat: float, incident_lon: float, responder_t
     return nearest
 
 
-def notify_analytics(incident_id: str, event: str):
-    """Fire-and-forget notification to analytics service."""
+def notify_analytics(
+    incident_id: str,
+    event: str,
+    incident_type: str = None,
+    region: str = None,
+    assigned_unit_type: str = None,
+    assigned_unit_id: str = None,
+):
+    """Send incident lifecycle event to the analytics service."""
+    payload = {
+        "incident_id": incident_id,
+        "event": event,
+        "incident_type": incident_type,
+        "region": region,
+        "assigned_unit_type": assigned_unit_type,
+        "assigned_unit_id": assigned_unit_id,
+    }
     try:
-        with httpx.Client(timeout=3.0) as client:
-            client.post(
+        with httpx.Client(timeout=5.0) as client:
+            resp = client.post(
                 f"{settings.ANALYTICS_SERVICE_URL}/analytics/events",
-                json={"incident_id": incident_id, "event": event},
+                json=payload,
             )
-    except Exception:
-        pass  # analytics failure must never block incident operations
+    except Exception as e:
+        pass
+        # Never block incident operations due to analytics failure

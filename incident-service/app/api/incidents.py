@@ -56,7 +56,7 @@ def create_incident(
             with httpx.Client(timeout=5.0) as client:
                 client.put(
                     f"{settings.DISPATCH_SERVICE_URL}/vehicles/{nearest['id']}/status",
-                    json={"status": "on_duty", "incident_id": str(incident.id)},
+                    json={"status": "ON_DUTY", "incident_id": str(incident.id)},
                     headers=INTERNAL_HEADERS,
                 )
         except Exception:
@@ -65,7 +65,15 @@ def create_incident(
         db.commit()
         db.refresh(incident)
 
-    notify_analytics(str(incident.id), "incident_created")
+    notify_analytics(
+        incident_id=str(incident.id),
+        event="INCIDENT_CREATED",
+        incident_type=incident.incident_type.value,
+        #region=_region_from_coords(incident.latitude, incident.longitude),
+        region="Greater Accra",
+        assigned_unit_type=incident.assigned_unit_type.value if incident.assigned_unit_type else None,
+        assigned_unit_id=incident.assigned_unit_id,
+    )
     return incident
 
 
@@ -112,12 +120,20 @@ def update_status(
             with httpx.Client(timeout=5.0) as client:
                 client.put(
                     f"{settings.DISPATCH_SERVICE_URL}/vehicles/{incident.assigned_unit_id}/status",
-                    json={"status": "available", "incident_id": None},
+                    json={"status": "AVAILABLE", "incident_id": None},
                     headers=INTERNAL_HEADERS,
                 )
         except Exception:
             pass
-        notify_analytics(str(incident.id), "incident_resolved")
+        notify_analytics(
+            incident_id=str(incident.id),
+            event="INCIDENT_RESOLVED",
+            incident_type=incident.incident_type.value,
+            #region=_region_from_coords(incident.latitude, incident.longitude),
+            region="Greater Accra",
+            assigned_unit_type=incident.assigned_unit_type.value if incident.assigned_unit_type else None,
+            assigned_unit_id=incident.assigned_unit_id,
+        )
 
     db.commit()
     db.refresh(incident)

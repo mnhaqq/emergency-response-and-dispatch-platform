@@ -23,7 +23,7 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Invalid role: {payload.role}")
     user = User(
         name=payload.name,
-        email=payload.email,
+        email=payload.email.lower(),
         role=role_enum,
         password_hash=hash_password(payload.password),
         station_id=payload.station_id,
@@ -36,7 +36,8 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
+    email = payload.email.lower()
+    user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token_data = {"sub": str(user.id), "role": user.role.value, "station_id": user.station_id}
